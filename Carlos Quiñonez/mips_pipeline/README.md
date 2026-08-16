@@ -1,4 +1,4 @@
-# Simulador MIPS con Pipeline (Proyecto Implementación 1)
+# Simulador MIPS con Pipeline (Parte 1)
 
 Implementación en C del simulador MIPS planificado en Proyecto Parte 1:
 5 funciones correspondientes a las etapas del pipeline clásico, cada una
