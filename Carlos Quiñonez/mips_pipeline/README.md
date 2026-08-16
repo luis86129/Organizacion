@@ -48,9 +48,7 @@ make clean    # borra los binarios generados
 
 - **Sin solapamiento de etapas (no pipeline real, no hazards).** Cada
   instrucción atraviesa las 5 etapas por completo antes de que la
-  siguiente comience. Esta fue una decisión explícita tomada en la
-  actividad grupal de Proyecto Parte 1: como no se simula solapamiento
-  entre instrucciones, no hay hazards de datos ni de control que resolver.
+  siguiente comience.
 - **Centinela de fin de programa:** la palabra `0x00000000` se usa como
   instrucción `HALT`. `cpu_step()` la detecta y detiene la ejecución.
 - **Validación de memoria:** `mem_read`/`mem_write` verifican que la
