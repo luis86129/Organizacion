@@ -1,0 +1,161 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit}
+\usepackage{float}
+
+\title{\vspace{-1.5cm}Simulador MIPS con \emph{pipeline} de 5 etapas\\
+\large Diagramas del proyecto (Parte 2)}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\vspace{-1.2cm}
+
+\section{Diagrama del sistema}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  etapa/.style={draw,rounded corners,minimum width=4.2cm,minimum height=1.05cm,align=center,fill=violet!8},
+  reg/.style={draw,minimum width=4.2cm,minimum height=0.45cm,align=center,fill=black!6,font=\scriptsize},
+  rec/.style={draw,rounded corners,minimum width=2.4cm,minimum height=1.05cm,align=center,fill=teal!12,font=\scriptsize},
+  test/.style={draw,rounded corners,minimum width=3.1cm,minimum height=0.95cm,align=center,fill=orange!13,font=\scriptsize},
+  fl/.style={-{Latex[length=2mm]}},
+  bi/.style={{Latex[length=2mm]}-{Latex[length=2mm]}}
+]
+
+\node[etapa] (if) {\textbf{1. IF --- Fetch + PC}\\[1pt]{\scriptsize \texttt{stage\_if.c}}};
+\node[reg,below=3.5mm of if] (r1) {registro IF/ID};
+\node[etapa,below=3.5mm of r1] (id) {\textbf{2. ID --- Decode}\\[1pt]{\scriptsize \texttt{stage\_id.c}}};
+\node[reg,below=3.5mm of id] (r2) {registro ID/EX};
+\node[etapa,below=3.5mm of r2] (ex) {\textbf{3. EX --- ALU}\\[1pt]{\scriptsize \texttt{stage\_ex.c}}};
+\node[reg,below=3.5mm of ex] (r3) {registro EX/MEM};
+\node[etapa,below=3.5mm of r3] (mem) {\textbf{4. MEM --- Memory}\\[1pt]{\scriptsize \texttt{stage\_mem.c}}};
+\node[reg,below=3.5mm of mem] (r4) {registro MEM/WB};
+\node[etapa,below=3.5mm of r4] (wb) {\textbf{5. WB --- Write back}\\[1pt]{\scriptsize \texttt{stage\_wb.c}}};
+
+\foreach \a/\b in {if/r1,r1/id,id/r2,r2/ex,ex/r3,r3/mem,mem/r4,r4/wb}
+  \draw[fl] (\a) -- (\b);
+
+\node[rec,left=1.5cm of if]  (imem) {\textbf{Mem. instrucciones}\\[1pt]\texttt{imem.bin}};
+\node[rec,left=1.5cm of id]  (rf)   {\textbf{Banco de registros}\\[1pt]\texttt{regs.bin}};
+\node[rec,left=1.5cm of mem] (dmem) {\textbf{Mem. de datos}\\[1pt]\texttt{dmem.bin}};
+
+\draw[fl] (imem) -- (if);
+\draw[fl] (rf)   -- (id);
+\draw[bi] (dmem) -- (mem);
+\draw[fl] (wb.west) -- ++(-0.75,0) |- ([yshift=-3.5mm]rf.east);
+
+\node[test,right=1.5cm of if]  (tif)  {\textbf{\texttt{test\_if}}\\[1pt]PC+4, saltos, \texttt{jr}};
+\node[test,right=1.5cm of id]  (tid)  {\textbf{\texttt{test\_id}}\\[1pt]control, extensión};
+\node[test,right=1.5cm of ex]  (tex)  {\textbf{\texttt{test\_ex}}\\[1pt]6 operaciones, zero};
+\node[test,right=1.5cm of mem] (tmem) {\textbf{\texttt{test\_mem}}\\[1pt]\texttt{lw}, \texttt{sw}, rangos};
+\node[test,right=1.5cm of wb]  (twb)  {\textbf{\texttt{test\_wb}}\\[1pt]\texttt{\$0}, \texttt{memToReg}};
+
+\foreach \a/\b in {if/tif,id/tid,ex/tex,mem/tmem,wb/twb}
+  \draw[bi] (\a) -- (\b);
+
+\node[test,below=7mm of wb,minimum width=8.5cm] (sys)
+  {\textbf{\texttt{test\_integration}}\\[1pt]vectores S1--S8: corre el programa y compara el estado final};
+\draw[fl] (wb) -- (sys);
+
+\end{tikzpicture}
+\caption{Módulos del simulador, recursos de estado cargados desde \texttt{.bin},
+módulos de prueba y conexiones direccionadas.}
+\end{figure}
+
+\clearpage
+\section{Diagrama de subfunciones de cada función}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  sub/.style={draw,rounded corners=2pt,fill=violet!8,minimum width=2.2cm,minimum height=0.62cm,
+              font=\scriptsize,align=center},
+  cont/.style={draw,rounded corners=4pt,fill=black!4}
+]
+
+\draw[cont] (0,0.45) rectangle (12.2,-1.35);
+\node[anchor=west,font=\bfseries\small] at (0.25,0) {1. IF --- Fetch + PC};
+\node[anchor=east,font=\tiny] at (11.95,0)
+  {entra: \texttt{pc[31:0]} $\cdot$ sale: \texttt{instr[31:0]}, \texttt{pcPlus4[31:0]}};
+\node[sub] at (1.3,-0.85) {\texttt{selectNextPC}};
+\node[sub] at (3.7,-0.85) {\texttt{checkAlign}};
+\node[sub] at (6.1,-0.85) {\texttt{fetchInstr}};
+\node[sub] at (8.5,-0.85) {\texttt{incrementPC}};
+
+\draw[cont] (0,-1.95) rectangle (12.2,-3.75);
+\node[anchor=west,font=\bfseries\small] at (0.25,-2.4) {2. ID --- Decode};
+\node[anchor=east,font=\tiny] at (11.95,-2.4)
+  {entra: \texttt{instr}, \texttt{pcPlus4} $\cdot$ sale: \texttt{rsVal}, \texttt{rtVal}, \texttt{imm32}, control};
+\node[sub] at (1.3,-3.25) {\texttt{splitFields}};
+\node[sub] at (3.7,-3.25) {\texttt{controlUnit}};
+\node[sub] at (6.1,-3.25) {\texttt{readRegs}};
+\node[sub] at (8.5,-3.25) {\texttt{signExtend}};
+\node[sub] at (10.9,-3.25) {\texttt{calcTargets}};
+
+\draw[cont] (0,-4.35) rectangle (12.2,-6.15);
+\node[anchor=west,font=\bfseries\small] at (0.25,-4.8) {3. EX --- ALU};
+\node[anchor=east,font=\tiny] at (11.95,-4.8)
+  {entra: \texttt{a}, \texttt{b}, \texttt{aluOp[1:0]}, \texttt{funct[5:0]} $\cdot$ sale: \texttt{result[31:0]}, \texttt{zero}};
+\node[sub] at (1.3,-5.65) {\texttt{aluControl}};
+\node[sub] at (3.7,-5.65) {\texttt{selectOperB}};
+\node[sub] at (6.1,-5.65) {\texttt{execute}};
+\node[sub] at (8.5,-5.65) {\texttt{zeroFlag}};
+\node[sub] at (10.9,-5.65) {\texttt{branchTaken}};
+
+\draw[cont] (0,-6.75) rectangle (12.2,-8.55);
+\node[anchor=west,font=\bfseries\small] at (0.25,-7.2) {4. MEM};
+\node[anchor=east,font=\tiny] at (11.95,-7.2)
+  {entra: \texttt{address}, \texttt{writeData}, \texttt{memRead/Write} $\cdot$ sale: \texttt{readData[31:0]}};
+\node[sub] at (1.3,-8.05) {\texttt{mapAddress}};
+\node[sub] at (3.7,-8.05) {\texttt{checkBounds}};
+\node[sub] at (6.1,-8.05) {\texttt{readWord}};
+\node[sub] at (8.5,-8.05) {\texttt{writeWord}};
+
+\draw[cont] (0,-9.15) rectangle (12.2,-10.95);
+\node[anchor=west,font=\bfseries\small] at (0.25,-9.6) {5. WB};
+\node[anchor=east,font=\tiny] at (11.95,-9.6)
+  {entra: \texttt{readData}, \texttt{aluResult}, \texttt{memToReg} $\cdot$ sale: banco de registros};
+\node[sub] at (1.3,-10.45) {\texttt{selectData}};
+\node[sub] at (3.7,-10.45) {\texttt{selectDest}};
+\node[sub] at (6.1,-10.45) {\texttt{writeRegFile}};
+
+\end{tikzpicture}
+\caption{Subfunciones de cada una de las cinco funciones, con sus entradas y salidas.
+Cada nombre corresponde a una función estática dentro del archivo \texttt{.c} de la etapa.}
+\end{figure}
+
+\clearpage
+\section{Correspondencia entre el diseño y el código}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Módulo del diagrama & Archivo & Función principal \\
+\midrule
+1. Instruction Fetch + PC & \texttt{src/stage\_if.c}  & \texttt{stage\_if()} \\
+2. Instruction Decode     & \texttt{src/stage\_id.c}  & \texttt{stage\_id()} \\
+3. ALU (Execute)          & \texttt{src/stage\_ex.c}  & \texttt{stage\_ex()} \\
+4. Memory                 & \texttt{src/stage\_mem.c} & \texttt{stage\_mem()} \\
+5. Write Back             & \texttt{src/stage\_wb.c}  & \texttt{stage\_wb()} \\
+\midrule
+Registros de \emph{pipeline}, riesgos y \emph{flush} & \texttt{src/pipeline.c} & \texttt{pipeline\_step()} \\
+Memorias y banco de registros (\texttt{.bin})        & \texttt{src/memory.c}   & \texttt{mem\_load\_*()} \\
+Módulos de prueba por etapa                          & \texttt{tests/test\_*.c} & un binario por etapa \\
+Test del sistema (vectores S1--S8)                   & \texttt{tests/test\_integration.c} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
