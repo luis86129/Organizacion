@@ -1,0 +1,250 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit}
+\usepackage{float}
+
+\title{\vspace{-1.5cm}Simulador MIPS con \emph{pipeline} de 5 etapas\\
+\large Diagramas del proyecto (Parte 2)}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\vspace{-1.2cm}
+
+\section{Diagrama maestro del sistema}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  etapa/.style={draw,rounded corners,fill=violet!8,minimum width=2.2cm,
+                minimum height=1.3cm,align=center,inner sep=1pt},
+  bar/.style={draw,fill=black!12,minimum width=0.30cm,minimum height=1.9cm,inner sep=0pt},
+  rec/.style={draw,rounded corners,fill=teal!12,minimum width=2.6cm,
+              minimum height=1.1cm,align=center,font=\scriptsize,inner sep=1pt},
+  test/.style={draw,rounded corners,fill=orange!13,minimum width=2.2cm,
+               minimum height=0.55cm,font=\scriptsize,inner sep=1pt},
+  tabla/.style={draw,rounded corners,fill=black!4,align=left,text width=3.35cm,
+                minimum height=3.6cm,inner sep=5pt,font=\scriptsize,anchor=north west},
+  fl/.style={-{Latex[length=1.5mm]}},
+  bi/.style={{Latex[length=1.5mm]}-{Latex[length=1.5mm]}},
+  bits/.style={font=\tiny}
+]
+
+% ---------------- contenedor exterior: testbench ----------------
+\draw[draw=black!55,dashed,rounded corners=8pt] (-0.7,-4.25) rectangle (15.15,4.65);
+\node[anchor=west,font=\bfseries\small] at (-0.55,4.2) {Testbench};
+
+\node[test,minimum width=6.2cm,minimum height=0.65cm,align=center] at (11.9,4.2)
+  {\textbf{Banco de pruebas} $\cdot$ vectores S1--S8 en \texttt{.txt}};
+
+% ---------------- modulos de prueba, uno por etapa ----------------
+\node[test] at (1.10,3.5)  {test IF};
+\node[test] at (4.25,3.5)  {test ID};
+\node[test] at (7.40,3.5)  {test ALU};
+\node[test] at (10.55,3.5) {test MEM};
+\node[test] at (13.70,3.5) {test WB};
+
+\foreach \x in {1.10,4.25,7.40,10.55,13.70}
+  \draw[dotted,black!55] (\x,3.225) -- (\x,3.05);
+
+% ---------------- contenedor interior: simulador ----------------
+\draw[rounded corners=6pt] (-0.45,-3.9) rectangle (14.90,3.05);
+\node[font=\bfseries\small] at (7.40,2.72) {Simulador};
+
+% ---------------- memoria de instrucciones ----------------
+\node[rec] at (1.10,2.30) {\textbf{Mem. instrucciones}\\[1pt]\texttt{imem.txt}};
+
+% ---------------- las cinco etapas ----------------
+\node[etapa] at (1.10,0)  {\textbf{1. IF}\\[2pt]{\scriptsize Fetch + PC}};
+\node[etapa] at (4.25,0)  {\textbf{2. ID}\\[2pt]{\scriptsize Decode}};
+\node[etapa] at (7.40,0)  {\textbf{3. EX}\\[2pt]{\scriptsize ALU}};
+\node[etapa] at (10.55,0) {\textbf{4. MEM}\\[2pt]{\scriptsize Memory}};
+\node[etapa] at (13.70,0) {\textbf{5. WB}\\[2pt]{\scriptsize Write back}};
+
+% ---------------- registros de pipeline ----------------
+\foreach \x in {2.675,5.825,8.975,12.125}
+  \node[bar] at (\x,0) {};
+
+\foreach \a/\b in {2.25/2.475, 2.875/3.10,
+                   5.40/5.625, 6.025/6.25,
+                   8.55/8.775, 9.175/9.40,
+                   11.70/11.925, 12.325/12.55}
+  \draw[fl] (\a,0) -- (\b,0);
+
+\node[font=\scriptsize\bfseries] at (2.675,-1.30)  {IF/ID};
+\node[bits] at (2.675,-1.70)  {65 b};
+\node[font=\scriptsize\bfseries] at (5.825,-1.30)  {ID/EX};
+\node[bits] at (5.825,-1.70)  {225 b};
+\node[font=\scriptsize\bfseries] at (8.975,-1.30)  {EX/MEM};
+\node[bits] at (8.975,-1.70)  {115 b};
+\node[font=\scriptsize\bfseries] at (12.125,-1.30) {MEM/WB};
+\node[bits] at (12.125,-1.70) {81 b};
+
+% ---------------- busqueda de la instruccion ----------------
+\draw[fl] (0.70,1.75) -- (0.70,0.65);
+\node[bits,anchor=west] at (0.80,1.20) {32 b};
+
+% ---------------- realimentacion del PC: salto resuelto en EX ----------------
+\draw[fl] (7.40,0.65) -- (7.40,1.35) -- (1.75,1.35) -- (1.75,0.65);
+\node[bits] at (4.75,1.55) {salto tomado: destino 32 b + \texttt{taken} 1 b};
+
+% ---------------- banco de registros y memoria de datos ----------------
+\node[rec,minimum width=2.7cm] at (4.25,-2.40)  {\textbf{Banco de registros}\\[1pt]$32\times32$ b};
+\node[rec,minimum width=2.7cm] at (10.55,-2.40) {\textbf{Memoria de datos}\\[1pt]\texttt{dmem.txt}};
+
+\draw[fl] (3.60,-1.85) -- (3.60,-0.65);
+\node[bits,anchor=west] at (3.70,-0.95) {$2\times32$ b};
+\draw[bi] (10.55,-1.85) -- (10.55,-0.65);
+\node[bits,anchor=west] at (10.65,-0.95) {32 b};
+
+\draw[fl] (13.70,-0.65) -- (13.70,-3.60) -- (4.85,-3.60) -- (4.85,-2.95);
+\node[bits] at (9.30,-3.42) {dato 32 b + registro destino 5 b};
+
+% ---------------- contenido de los registros de pipeline ----------------
+\node[anchor=west,font=\bfseries\small] at (-0.7,-4.70)
+  {Contenido de cada registro de \emph{pipeline}};
+
+\node[tabla] at (-0.7,-5.05)
+  {\textbf{IF/ID --- 65 b}\\[3pt]
+   \texttt{instr} 32 b\\
+   \texttt{pcPlus4} 32 b\\
+   \texttt{valid} 1 b};
+
+\node[tabla] at (3.35,-5.05)
+  {\textbf{ID/EX --- 225 b}\\[3pt]
+   control 11 b\\
+   \texttt{rsVal}, \texttt{rtVal} 64 b\\
+   \texttt{imm32} 32 b\\
+   \texttt{pcPlus4} 32 b\\
+   destinos de salto 64 b\\
+   \texttt{rs}, \texttt{rt}, \texttt{rd} 15 b\\
+   \texttt{funct} 6 b\\
+   \texttt{valid} 1 b};
+
+\node[tabla] at (7.40,-5.05)
+  {\textbf{EX/MEM --- 115 b}\\[3pt]
+   control 11 b\\
+   \texttt{aluResult} 32 b\\
+   \texttt{rtVal} 32 b\\
+   \texttt{branchPC} 32 b\\
+   \texttt{writeReg} 5 b\\
+   \texttt{zero}, \texttt{taken} 2 b\\
+   \texttt{valid} 1 b};
+
+\node[tabla] at (11.45,-5.05)
+  {\textbf{MEM/WB --- 81 b}\\[3pt]
+   control 11 b\\
+   \texttt{aluResult} 32 b\\
+   \texttt{readData} 32 b\\
+   \texttt{writeReg} 5 b\\
+   \texttt{valid} 1 b};
+
+\node[bits,anchor=west] at (-0.7,-9.05)
+  {Morado: etapas $\cdot$ Verde: memorias y banco de registros $\cdot$
+   Naranja: testbench $\cdot$ Gris: registros de \emph{pipeline}};
+
+\end{tikzpicture}
+\caption{Diagrama maestro: flujo de las cinco etapas, registros de \emph{pipeline} con
+su ancho en bits, memorias cargadas desde \texttt{.txt} y módulos de prueba dentro
+del \emph{testbench}.}
+\end{figure}
+
+\clearpage
+\section{Diagrama de subfunciones de cada función}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  sub/.style={draw,rounded corners=2pt,fill=violet!8,minimum width=2.2cm,minimum height=0.62cm,
+              font=\scriptsize,align=center},
+  cont/.style={draw,rounded corners=4pt,fill=black!4}
+]
+
+\draw[cont] (0,0.45) rectangle (12.2,-1.35);
+\node[anchor=west,font=\bfseries\small] at (0.25,0) {1. IF --- Fetch + PC};
+\node[anchor=east,font=\tiny] at (11.95,0)
+  {entra: \texttt{pc[31:0]} $\cdot$ sale: \texttt{instr[31:0]}, \texttt{pcPlus4[31:0]}};
+\node[sub] at (1.3,-0.85) {\texttt{selectNextPC}};
+\node[sub] at (3.7,-0.85) {\texttt{checkAlign}};
+\node[sub] at (6.1,-0.85) {\texttt{fetchInstr}};
+\node[sub] at (8.5,-0.85) {\texttt{incrementPC}};
+
+\draw[cont] (0,-1.95) rectangle (12.2,-3.75);
+\node[anchor=west,font=\bfseries\small] at (0.25,-2.4) {2. ID --- Decode};
+\node[anchor=east,font=\tiny] at (11.95,-2.4)
+  {entra: \texttt{instr}, \texttt{pcPlus4} $\cdot$ sale: \texttt{rsVal}, \texttt{rtVal}, \texttt{imm32}, control};
+\node[sub] at (1.3,-3.25) {\texttt{splitFields}};
+\node[sub] at (3.7,-3.25) {\texttt{controlUnit}};
+\node[sub] at (6.1,-3.25) {\texttt{readRegs}};
+\node[sub] at (8.5,-3.25) {\texttt{signExtend}};
+\node[sub] at (10.9,-3.25) {\texttt{calcTargets}};
+
+\draw[cont] (0,-4.35) rectangle (12.2,-6.15);
+\node[anchor=west,font=\bfseries\small] at (0.25,-4.8) {3. EX --- ALU};
+\node[anchor=east,font=\tiny] at (11.95,-4.8)
+  {entra: \texttt{a}, \texttt{b}, \texttt{aluOp[1:0]}, \texttt{funct[5:0]} $\cdot$ sale: \texttt{result[31:0]}, \texttt{zero}};
+\node[sub] at (1.3,-5.65) {\texttt{aluControl}};
+\node[sub] at (3.7,-5.65) {\texttt{selectOperB}};
+\node[sub] at (6.1,-5.65) {\texttt{execute}};
+\node[sub] at (8.5,-5.65) {\texttt{zeroFlag}};
+\node[sub] at (10.9,-5.65) {\texttt{branchTaken}};
+
+\draw[cont] (0,-6.75) rectangle (12.2,-8.55);
+\node[anchor=west,font=\bfseries\small] at (0.25,-7.2) {4. MEM};
+\node[anchor=east,font=\tiny] at (11.95,-7.2)
+  {entra: \texttt{address}, \texttt{writeData}, \texttt{memRead/Write} $\cdot$ sale: \texttt{readData[31:0]}};
+\node[sub] at (1.3,-8.05) {\texttt{mapAddress}};
+\node[sub] at (3.7,-8.05) {\texttt{checkBounds}};
+\node[sub] at (6.1,-8.05) {\texttt{readWord}};
+\node[sub] at (8.5,-8.05) {\texttt{writeWord}};
+
+\draw[cont] (0,-9.15) rectangle (12.2,-10.95);
+\node[anchor=west,font=\bfseries\small] at (0.25,-9.6) {5. WB};
+\node[anchor=east,font=\tiny] at (11.95,-9.6)
+  {entra: \texttt{readData}, \texttt{aluResult}, \texttt{memToReg} $\cdot$ sale: banco de registros};
+\node[sub] at (1.3,-10.45) {\texttt{selectData}};
+\node[sub] at (3.7,-10.45) {\texttt{selectDest}};
+\node[sub] at (6.1,-10.45) {\texttt{writeRegFile}};
+
+\end{tikzpicture}
+\caption{Subfunciones de cada una de las cinco funciones, con sus entradas y salidas.
+Cada nombre corresponde a una función estática dentro del archivo \texttt{.c} de la etapa.}
+\end{figure}
+
+\clearpage
+\section{Correspondencia entre el diseño y el código}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Módulo del diagrama & Archivo & Función principal \\
+\midrule
+1. Instruction Fetch + PC & \texttt{src/stage\_if.c}  & \texttt{stage\_if()} \\
+2. Instruction Decode     & \texttt{src/stage\_id.c}  & \texttt{stage\_id()} \\
+3. ALU (Execute)          & \texttt{src/stage\_ex.c}  & \texttt{stage\_ex()} \\
+4. Memory                 & \texttt{src/stage\_mem.c} & \texttt{stage\_mem()} \\
+5. Write Back             & \texttt{src/stage\_wb.c}  & \texttt{stage\_wb()} \\
+\midrule
+Registros de \emph{pipeline}, riesgos y \emph{flush} & \texttt{src/pipeline.c} & \texttt{pipeline\_step()} \\
+Memorias y banco de registros (\texttt{.txt})        & \texttt{src/memory.c}   & \texttt{mem\_load\_*()} \\
+Módulos de prueba por etapa                          & \texttt{tests/test\_*.c} & un binario por etapa \\
+Test del sistema (vectores S1--S8)                   & \texttt{tests/test\_integration.c} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Los totales en bits del diagrama maestro salen de sumar los campos de las
+estructuras \texttt{IFID}, \texttt{IDEX}, \texttt{EXMEM} y \texttt{MEMWB} declaradas en
+\texttt{include/mips.h}.
+
+\end{document}
